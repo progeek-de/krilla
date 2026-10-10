@@ -365,12 +365,35 @@ impl ChunkContainer {
                 for (key, visible) in [(Name(b"ON"), true), (Name(b"OFF"), false)] {
                     let mut refs = optional_content_groups
                         .iter()
-                        .filter(|(_, v)| *v == visible)
+                        .filter(|(_, g)| g.view == visible)
                         .map(|(r, _)| remapper[r])
                         .peekable();
 
                     if refs.peek().is_some() {
                         config.insert(key).array().typed().items(refs);
+                    }
+                }
+
+                let with_usage = optional_content_groups
+                    .iter()
+                    .filter(|(_, g)| g.has_usage())
+                    .map(|(r, _)| remapper[r])
+                    .collect::<Vec<_>>();
+
+                if !with_usage.is_empty() {
+                    let mut auto_states = config.insert(Name(b"AS")).array();
+                    for event in [Name(b"View"), Name(b"Print"), Name(b"Export")] {
+                        let mut usage_application = auto_states.push().dict();
+                        usage_application.pair(Name(b"Event"), event);
+                        usage_application
+                            .insert(Name(b"Category"))
+                            .array()
+                            .item(event);
+                        usage_application
+                            .insert(Name(b"OCGs"))
+                            .array()
+                            .typed()
+                            .items(with_usage.iter().copied());
                     }
                 }
 

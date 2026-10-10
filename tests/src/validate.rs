@@ -8,6 +8,7 @@ use krilla::error::KrillaError;
 use krilla::geom::{Point, Rect, Size};
 use krilla::metadata::{DateTime, Metadata};
 use krilla::num::NormalizedF32;
+use krilla::optional_content::OptionalContentGroup;
 use krilla::outline::Outline;
 use krilla::page::Page;
 use krilla::paint::{Fill, FillRule, LinearGradient, SpreadMethod};
@@ -87,7 +88,7 @@ pub fn validate_pdf_a_q_nesting_28() {
 #[test]
 pub fn validate_pdf_a1_optional_content() {
     let mut document = Document::new_with(settings_19());
-    document.add_optional_content_group("My Layer", true);
+    document.add_optional_content_group(&OptionalContentGroup::new("My Layer"));
 
     assert_eq!(
         validation_errors(document.finish()),

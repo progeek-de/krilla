@@ -25,6 +25,7 @@ use crate::interactive::destination::{NamedDestination, XyzDestination};
 use crate::interchange::embed::EmbeddedFile;
 use crate::interchange::outline::Outline;
 use crate::interchange::tagging::{AnnotationIdentifier, PageTagIdentifier, TagTree};
+use crate::optional_content::OptionalContentGroup;
 use crate::page::{InternalPage, PageLabel, PageLabelContainer};
 #[cfg(feature = "pdf")]
 use crate::pdf::{PdfDocument, PdfSerializerContext};
@@ -580,8 +581,7 @@ impl SerializeContext {
     pub(crate) fn add_optional_content_group(
         &mut self,
         chunk_container: &mut ChunkContainer,
-        name: &str,
-        visible: bool,
+        group: &OptionalContentGroup,
     ) -> Ref {
         if self.serialize_settings().pdf_version()
             < VersionedFeature::OptionalContent.minimum_pdf_version()
@@ -594,17 +594,36 @@ impl SerializeContext {
 
         let ref_ = self.new_ref();
 
-        chunk_container
+        let mut dict = chunk_container
             .non_stream
             .optional_content_groups
             .indirect(ref_)
-            .dict()
-            .pair(Name(b"Type"), Name(b"OCG"))
-            .pair(Name(b"Name"), Str(name.as_bytes()));
+            .dict();
+        dict.pair(Name(b"Type"), Name(b"OCG"))
+            .pair(Name(b"Name"), Str(group.name.as_bytes()));
+
+        if group.has_usage() {
+            let state = |shown: bool| if shown { Name(b"ON") } else { Name(b"OFF") };
+            let mut usage = dict.insert(Name(b"Usage")).dict();
+            usage
+                .insert(Name(b"View"))
+                .dict()
+                .pair(Name(b"ViewState"), state(group.view));
+            usage
+                .insert(Name(b"Print"))
+                .dict()
+                .pair(Name(b"PrintState"), state(group.print));
+            usage
+                .insert(Name(b"Export"))
+                .dict()
+                .pair(Name(b"ExportState"), state(group.export));
+        }
+
+        dict.finish();
 
         self.global_objects
             .optional_content_groups
-            .push((ref_, visible));
+            .push((ref_, group.clone()));
 
         ref_
     }
@@ -1122,7 +1141,7 @@ pub(crate) struct GlobalObjects {
     pub(crate) embedded_files: MaybeTaken<BTreeMap<String, Ref>>,
     /// Stores every optional content group and its default visibility,
     /// for the catalog dictionary.
-    pub(crate) optional_content_groups: MaybeTaken<Vec<(Ref, bool)>>,
+    pub(crate) optional_content_groups: MaybeTaken<Vec<(Ref, OptionalContentGroup)>>,
     /// A list of custom headings numbers used in the document.
     pub(crate) custom_heading_roles: BTreeSet<NonZeroU16>,
     /// The context tracking all of the pdfs and their pages that have been inserted.

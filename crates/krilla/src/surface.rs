@@ -25,7 +25,7 @@ use crate::graphics::paint::{Fill, FillRule, Stroke};
 use crate::graphics::shading_function::ShadingFunction;
 use crate::interchange::tagging::{ContentTag, Identifier, PageTagIdentifier};
 use crate::num::NormalizedF32;
-use crate::optional_content::OptionalContentGroupId;
+use crate::optional_content::{OptionalContentGroup, OptionalContentGroupId};
 use crate::paint::{InnerPaint, Paint};
 #[cfg(feature = "pdf")]
 use crate::pdf::PdfDocument;
@@ -291,14 +291,15 @@ impl<'a> Surface<'a> {
     /// actually carries ink, say -- otherwise has to either enumerate every possible group up front or
     /// make a throwaway drawing pass first, purely to satisfy the borrow.
     ///
-    /// `name` is the group's name as shown by the viewer, `visible` whether it starts out shown. Two
-    /// groups with the same name are two distinct groups, exactly as on `Document`.
+    /// Two groups with the same name are two distinct groups, exactly as on `Document`.
     pub fn add_optional_content_group(
         &mut self,
-        name: &str,
-        visible: bool,
+        group: &OptionalContentGroup,
     ) -> OptionalContentGroupId {
-        OptionalContentGroupId(self.sc.add_optional_content_group(self.chunk_container, name, visible))
+        OptionalContentGroupId(
+            self.sc
+                .add_optional_content_group(self.chunk_container, group),
+        )
     }
 
     fn outline_glyphs(

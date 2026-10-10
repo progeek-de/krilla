@@ -1,3 +1,4 @@
+use krilla::optional_content::OptionalContentGroup;
 use krilla::page::Page;
 use krilla::Document;
 use krilla_macros::snapshot;
@@ -30,7 +31,7 @@ fn marked_content_nested_in_tagged_section(page: &mut Page) {
 
 #[snapshot(document)]
 fn optional_content_single_group(d: &mut Document) {
-    let layer = d.add_optional_content_group("My Layer", true);
+    let layer = d.add_optional_content_group(&OptionalContentGroup::new("My Layer"));
 
     let mut page = d.start_page();
     let mut surface = page.surface();
@@ -44,7 +45,8 @@ fn optional_content_single_group(d: &mut Document) {
 
 #[snapshot(document)]
 fn optional_content_hidden_by_default(d: &mut Document) {
-    let layer = d.add_optional_content_group("Hidden Layer", false);
+    let layer =
+        d.add_optional_content_group(&OptionalContentGroup::new("Hidden Layer").with_view(false));
 
     let mut page = d.start_page();
     let mut surface = page.surface();
@@ -57,9 +59,25 @@ fn optional_content_hidden_by_default(d: &mut Document) {
 }
 
 #[snapshot(document)]
+fn optional_content_hidden_in_print(d: &mut Document) {
+    let layer =
+        d.add_optional_content_group(&OptionalContentGroup::new("Screen Only").with_print(false));
+
+    let mut page = d.start_page();
+    let mut surface = page.surface();
+    surface.start_optional_content(layer);
+    surface.set_fill(Some(blue_fill(1.0)));
+    surface.draw_path(&rect_to_path(20.0, 20.0, 80.0, 80.0));
+    surface.end_optional_content();
+    surface.finish();
+    page.finish();
+}
+
+#[snapshot(document)]
 fn optional_content_two_groups(d: &mut Document) {
-    let visible = d.add_optional_content_group("Visible Layer", true);
-    let hidden = d.add_optional_content_group("Hidden Layer", false);
+    let visible = d.add_optional_content_group(&OptionalContentGroup::new("Visible Layer"));
+    let hidden =
+        d.add_optional_content_group(&OptionalContentGroup::new("Hidden Layer").with_view(false));
 
     let mut page = d.start_page();
     let mut surface = page.surface();
@@ -77,7 +95,7 @@ fn optional_content_two_groups(d: &mut Document) {
 
 #[snapshot(document)]
 fn optional_content_nested_with_marked_content(d: &mut Document) {
-    let layer = d.add_optional_content_group("Outer Layer", true);
+    let layer = d.add_optional_content_group(&OptionalContentGroup::new("Outer Layer"));
 
     let mut page = d.start_page();
     let mut surface = page.surface();
@@ -99,7 +117,7 @@ fn optional_content_nested_with_marked_content(d: &mut Document) {
 fn optional_content_group_added_from_surface(d: &mut Document) {
     let mut page = d.start_page();
     let mut surface = page.surface();
-    let layer = surface.add_optional_content_group("Drawn Layer", true);
+    let layer = surface.add_optional_content_group(&OptionalContentGroup::new("Drawn Layer"));
     surface.start_optional_content(layer);
     surface.set_fill(Some(red_fill(1.0)));
     surface.draw_path(&rect_to_path(20.0, 20.0, 80.0, 80.0));
@@ -115,7 +133,7 @@ fn optional_content_groups_added_from_surface_while_drawing(d: &mut Document) {
     let mut page = d.start_page();
     let mut surface = page.surface();
 
-    let shown = surface.add_optional_content_group("Shown", true);
+    let shown = surface.add_optional_content_group(&OptionalContentGroup::new("Shown"));
     surface.start_optional_content(shown);
     surface.start_marked_content("1");
     surface.set_fill(Some(red_fill(1.0)));
@@ -123,7 +141,8 @@ fn optional_content_groups_added_from_surface_while_drawing(d: &mut Document) {
     surface.end_marked_content();
     surface.end_optional_content();
 
-    let hidden = surface.add_optional_content_group("Hidden", false);
+    let hidden =
+        surface.add_optional_content_group(&OptionalContentGroup::new("Hidden").with_view(false));
     surface.start_optional_content(hidden);
     surface.start_marked_content("2");
     surface.set_fill(Some(blue_fill(1.0)));
